@@ -1,0 +1,124 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Wed Jan  9 09:26:07 2019
+
+@author: Gebruiker
+"""
+
+import numpy as np
+import math as m
+import pylab as pl
+# plotten van de wavefunction voor verschillende waarden van de (inkomende) energie k
+# PARAMETERS #
+alpha = 0.3
+Re = 4
+EnerNum = 300
+MaxEner = 10
+MinEner = 0.08
+EnerStep = int((MaxEner-MinEner)//EnerNum)
+Start = Re / 10000
+HStep = 0.005
+MaxDist = 5 / alpha
+MaxI = int(m.ceil((MaxDist-Start)/HStep))
+schaal = 3
+numberofwavefunc = 1
+    
+    
+###################################
+# making the figures
+###################################
+
+# loop over alle energieblokken
+    # plotting the wavefunctions (different l) as function of x for different incoming energies
+
+fwavefunc = np.loadtxt('wavefunc')
+
+
+EnerStep = (MaxEner-MinEner)/EnerNum
+
+
+
+# WAVEFUNCTIONS[E_i][j] gives you the u_j eigenfunction with incoming energy of E_i. Okido?
+# Lukas: energieniveau i heeft energiewaarde 'i*EnerStep'
+WAVEFUNCTIONS = dict()
+
+xlen = MaxI//3+1
+x = fwavefunc[0:xlen, 1] # Alle x-waarden (heeft zelfde shape als WAVEFUNCTIONS[E_i][j])
+for i in range(EnerNum):
+    WAVEFUNCTIONS[i]=[[] for i in range(6)]
+    for u in range(6):
+        WAVEFUNCTIONS[i][u]=fwavefunc[i*xlen:(i+1)*xlen, 2+u]
+  
+schaal = 3
+numberofwavefunc = 1
+E_min, E_max = 5.5,6.5 # in buurt van eerste resonantie
+E_min_index, E_max_index = int(E_min/EnerStep), int(E_max/EnerStep) # index in de file van die energieen 
+print(E_min_index) 
+# loop over alle energieblokken
+
+fig2, ax = pl.subplots()
+#ax.plot(x, WAVEFUNCTIONS[42][5])
+
+for i in range(E_min_index, E_max_index):  #kies maar welke energieen
+    for u in range(numberofwavefunc): #kies maar hoeveel eigenfuncties
+        ax.plot(x, WAVEFUNCTIONS[i][u])
+fig2.savefig('wavefunctions.png')
+
+# plotting the total cross-section as function of incoming energy
+sigmadat = np.loadtxt('sigmadat')
+fig1=pl.figure()
+fig1.subplots_adjust(bottom=0.2,left=0.2)
+ax1  = fig1.add_subplot(111)
+ax1.plot(sigmadat[1:,0],sigmadat[1:,1], 'b-'), ax1.grid(True) #eerste lijn is tekst
+ax1.set_xlabel(r'Energy $E ({fm}^{-2})$'), ax1.set_ylabel(r'Total cross section $\sigma_{tot}$ (${fm}^2$)')
+ax1.set_title(r"Total cross section for scattering (Morse potential)",fontsize=18,color='firebrick')
+#ax1.legend(frameon=False,fontsize=22,ncol=1,loc='best')
+fig1.savefig("Sigmatot.png")
+
+fig3, ax3 = pl.subplots()  
+
+# Reproduction of Figure 4: finding the first four nodes of the FIRST radial wavefunction in neighborhood of potential barrier
+# as a function of different energies (k)
+totaalpunten = []
+from scipy.signal import argrelextrema
+for E_i in range(E_min_index, E_max_index):
+  # find zeros of zeroth eigenfunction
+  # sqare the wavefunctions and find the relative minima
+  relativeminindex =argrelextrema(np.power(WAVEFUNCTIONS[E_i][0],2), np.less)
+  nulpunten=[x[i] for i in relativeminindex][0:4]
+  totaalpunten.append(nulpunten[0][0:4])
+  
+  #ax3.plot([E_i*EnerStep for i in nulpunten[0][0:4]], nulpunten[0][0:4], '-o')
+totaalpunten = np.transpose(totaalpunten)
+for liste in totaalpunten:
+  ax3.plot([E_i*EnerStep for E_i in range(E_min_index, E_max_index)], liste, '-o')
+  ax3.set_xlabel('Energy(1/$fm^2$)')
+  ax3.set_ylabel('r (fm)')
+  ax3.set_title('Radial position of nodes for $l=0$',fontsize=18,color='firebrick' )
+fig3.savefig('zeropoints.png')
+
+# plot the phase shift for L = 0 
+Enernum = 300
+deltaenergie = np.loadtxt('deltaL')
+energieen = np.zeros(Enernum)
+deltas = np.zeros(Enernum)
+count = 0
+
+fig4, ax4 = pl.subplots()
+for point in deltaenergie:
+  # L needs to be 0
+    if point[1] == 0.:
+      #collumn 0 is the energy to get k you need to take the sqrt.
+        energieen[count] = np.sqrt(point[0])
+        deltas[count] = point[2] / np.pi
+        count+=1
+# making the plot
+
+ax4.set_title('Variation of the phase shift with energy for l=0',fontsize=18,color='firebrick')
+ax4.set_xlabel('E ($fm^{-2}$)')
+ax4.set_ylabel('$\delta$ / $\pi$')
+ax4.plot(energieen, deltas, 'b.')
+  
+###################################
+# making the figures
+###################################
