@@ -26,20 +26,22 @@ import matplotlib.pyplot as pl
 # where m is the reduced mass of the two-particle system
 # We choose the parameter Re (the location of the maximum in the Morse potential)
 # as the unit of length.
-# This means that energies are expressed in units 1 / Re **2
+# This means that energies are expressed in units 1 / fm **2
 #
 # This version of the program works in these rescaled units, it can however be
 # easily modified to work in SI units.
 #
 # To apply this program to a physical problem, i.e. work with
 # actual physical energies (expressed in eV) one simply has to choose the relevant values of
-# m an Re, and express the quantity 2 * m / hbar ** 2 in terms of eV and Re as
-# 2 * m / hbar ** 2 = Scaling * 1 / (eV * Re ** 2)
+# m an fm, and express the quantity 2 * m / hbar ** 2 in terms of eV and fm as
+# 2 * m / hbar ** 2 = Scaling * 1 / (eV * fm ** 2)
 # Physical energies can then be used as input by assigning this value to the variable Scaling
-# A different unit of length can also be used, simply by express Re and Scaling in terms of this unit
+# 
 #
 #
-# parameters of the Morse potential
+# parameters of the Morse potential: These are the parameters which are used in the paper attached to the assignment.
+# 
+
 V0 = 6.
 alpha = 0.3
 Re = 4.
