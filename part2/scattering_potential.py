@@ -46,6 +46,7 @@ V0 = 6.
 alpha = 0.3
 Re = 4.
 
+# parameter to convert to physical units
 Scaling = 1.
 
 # maximum number of gridpoints for solving the radial SE
@@ -54,37 +55,47 @@ MaxSol = 6000
 # number of degree bins to calculate the diff. cross section in
 nDegrees=181
 
-Scaling = 1.
-
 def InputParams():
-    MaxEner = 10
-    MinEner = 0.08
+    # define and create the input parameters for the program
+    
+    # probed energy interval in EnerNum amount of steps
+    MinEner, MaxEner = 0.08, 10
     EnerNum = 300
+    
+    # Define a maximum distance for the potential, where it approaches 0 sufficiently 
     MaxDist = 5 / alpha
+    
+    # Define a maximum L, as LMax \approx k * MaxDist, where k = sqrt(E) (has to be integer!)
+    # Here we implement a maximum energy of 16
     LMax = int(4*MaxDist)
-    Start = Re / 10000
+    
+    # Define a range of R values for integration
+    Start = Re / 10000 # avoid divergence at 0 or divide by 0
     HStep = 0.005
     MaxI = int(m.ceil((MaxDist-Start)/HStep))
+    
+    # Use the Morse function as potential (effective potential)
     potential = 'Morse'
+    
     return MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, MaxI, potential
 
-  
-
 def CalcScatterMorse(MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, MaxI):
- # Modified the function CalcScatterpotential to specificly use the Morse potential
- # As only finite amounts of angular momentum can be transferred to the target, we cut all sums at LMax = k * MaxDist
- # We have improved on this by taking everywhere LMax = 4*MaxDist (k runs only from 1 to 10**0.5)
- #      Calculates total and angular cross sections for a sequence of
- #      energies
- #      Cross sections are computed in two different ways:
- #         i)  exactly
- #         ii) in the Born approximation
- #
- #   Results for total cross section are written to a file "sigmadat"
- #   Results for differential cross section are written to a "sigmadiff"
- #   The radial wavefunctions are written to "wavefunc" (only the first 6, or first LMax if LMax < 6)
- #
- #   wavef[l,i] is de golffunctie u_l(R_i), met R_i = start + i * Hstep
+    # Modified the function CalcScatterpotential to specificly use the Morse potential
+    #  As only finite amounts of angular momentum can be transferred to the target, we cut all sums at LMax = k * MaxDist
+    # We have improved on this by taking everywhere LMax = 4*MaxDist (k runs only from 1 to 10**0.5)
+    #      Calculates total and angular cross sections for a sequence of
+    #      energies
+    #      Cross sections are computed in two different ways:
+    #         i)  exactly
+    #         ii) in the Born approximation
+    #
+    #   Results for total cross section are written to a file "sigmadat"
+    #   Results for differential cross section are written to a "sigmadiff"
+    #   The radial wavefunctions are written to "wavefunc" (only the first 6, or first LMax if LMax < 6)
+    #
+    #   wavef[l,i] is de golffunctie u_l(R_i), met R_i = start + i * Hstep
+ 
+    # initialise all data and datafiles
     wavefunc = np.zeros([6,MaxSol])
     fwavefunc = open("wavefunc", 'w')
 
@@ -109,15 +120,18 @@ def CalcScatterMorse(MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, Max
     Singular = False
     Function = Morse
 
-    #Start loop over the energies
+    # Start loop over the energies
     DeltaE = (MaxEner-MinEner)/EnerNum
     Ener = MinEner
-    for i in range(0,EnerNum):
+    for i in range(0,EnerNum): # loop energies
+        # calculate k for this Energy
         k = m.sqrt(Scaling*Ener)
-        #initialize the differential cross section = 0
+        
+        # initialize cross-sections = 0
         SigmaTot = 0.0
         SigmaTotBorn = 0.0
         DSigma1, DSigma2, SigmaOmega = np.zeros(nDegrees), np.zeros(nDegrees), np.zeros(nDegrees)
+        
         # for each energy, sum over the partial waves.
         # compute the phase shift exactly with function CalcDelta
         for L in range(0, LMax+1):
@@ -130,14 +144,14 @@ def CalcScatterMorse(MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, Max
             SigmaLBorn = 4.* m.pi/k/k*(2*L+1)*m.sin(DeltaBorn)*m.sin(DeltaBorn)
             SigmaTotBorn += SigmaLBorn
 
-            #Write out the computed results for each L:
+            # Write out the computed results for each L:
             #    SigmaL = contribution of this L to the total cross section
             #    SigmaTot = total cross section resulting from partial waves up to L
 
             txt = str(Ener) + "\t" + str(L) + "\t" + str(SigmaL) + "\t" +  str(SigmaLBorn) + "\t" + str(SigmaTot) + "\t" + str(SigmaTotBorn) + "\n"
             fsigmaL.write(txt)
 
-            #Compute the differential cross section, using the Legendre polynomials.
+            # Compute the differential cross section, using the Legendre polynomials.
             # j in degrees, theta in radians. (j is stored.)
             for j in range(0, nDegrees):
                 theta = m.pi*j/180.0
@@ -156,14 +170,13 @@ def CalcScatterMorse(MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, Max
         fsigmaL.write("\n")
         fdeltaL.write("\n\n")
 
-        #write out all sums over L:
-        #print("{:8d}   Ener={:8.3f}   SigmaTot={:8.3e}   TanDelta={:8.3e}".format(i+1,Ener,SigmaTot,m.tan(Delta)))
+        # write out all sums over L:
+        # print("{:8d}   Ener={:8.3f}   SigmaTot={:8.3e}   TanDelta={:8.3e}".format(i+1,Ener,SigmaTot,m.tan(Delta)))
 
         txt = str(Ener) + '\t' + str(SigmaTot) + '\t' + str(SigmaTotBorn) + '\n'
         fsigmadat.write(txt)
 
         # Write the first 6 (or LMax if LMax < 6) wave functions in a file
-
         for jj in range(0, MaxI+1, 3):
             txt = str(Ener)+"\t"+str(Start + jj*HStep)
             ll = 0
@@ -182,7 +195,7 @@ def CalcScatterMorse(MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, Max
     fsigmadiff.close()
     fwavefunc.close()
     fdeltaL.close()
-    print("Ouput written to files sigmadat, sigmadiff, sigmaL, wavefunc, deltaL.\n")
+    print("Output written to files sigmadat, sigmadiff, sigmaL, wavefunc, deltaL.\n")
 # End of function CalcScatter
 
 def CalcDelta(F, Singular, L, Ener, k, Start, MaxDist, MaxI, HStep, wavefunc, fdeltaL):
@@ -392,6 +405,9 @@ def Numerov( Delta, StartI, EndI, FArr, Singular, Phistart, Phinext):
 
 # Begin Program
 if __name__=="__main__":
+    # initialise parameters
     MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, MaxI, potential= InputParams()
+    
+    # calculate the cross-sections/wavefunctions for the chosen parameters
     CalcScatterMorse(MaxEner, MinEner, EnerNum, LMax, Start, HStep, MaxDist, MaxI)
 # End Program
